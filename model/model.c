@@ -1015,7 +1015,7 @@ for (int y = 13; y <= 15; y++) {
     m->power_timer = 0;
     m->ghost_eat_combo = 0;
     m->frame_count = 0;
-    m->ready_timer = 25;
+    m->ready_timer = 20;
 
     /* Constroi o grafo do labirinto */
     if (m->maze_graph) graph_free(m->maze_graph);
@@ -1098,10 +1098,12 @@ void model_move_pacman(GameModel *m) {
         m->power_timer = POWER_TIME;
         m->ghost_eat_combo = 0;
 
-        for (int i = 0; i < GHOSTS; i++) {
-            if (!m->ghosts[i].eaten)
-                m->ghosts[i].vulnerable = 1;
-        }
+       for (int i = 0; i < GHOSTS; i++) {
+    if (!m->ghosts[i].in_house) {
+        m->ghosts[i].vulnerable = 1;
+        m->ghosts[i].eaten = 0;
+    }
+}
 
         /* Usa Dijkstra para calcular distancia de cada fantasma vulneravel */
         int pacman_vertex = model_coord_to_vertex(m->pacman.x, m->pacman.y);
@@ -1227,11 +1229,13 @@ void model_move_ghosts(GameModel *m) {
         /* Fantasma na ghost house: espera timer */
         if (g->in_house) {
             if (g->release_timer > 0) { g->release_timer--; continue; }
-            /* Sai da ghost house */
-            g->e.x = 14; g->e.y = 11;
-            g->e.dx = (rand() % 2) ? 1 : -1;
+            /* Sai da ghost house pela porta */
+            g->e.x = 14;
+            g->e.y = 11;
+            g->e.dx = (i % 2 == 0) ? -1 : 1;
             g->e.dy = 0;
             g->in_house = 0;
+            g->eaten = 0;
             continue;
         }
 
@@ -1286,12 +1290,17 @@ int model_check_collisions(GameModel *m) {
                 m->score += 200 * m->ghost_eat_combo;
                 if (m->score > m->high_score) m->high_score = m->score;
 
-                m->ghosts[i].e.x = m->ghosts[i].e.start_x;
-                m->ghosts[i].e.y = m->ghosts[i].e.start_y;
+                            int home_x[4] = {14, 13, 14, 15};
+                int home_y[4] = {13, 14, 14, 14};
+
+                m->ghosts[i].e.x = home_x[i];
+                m->ghosts[i].e.y = home_y[i];
+                m->ghosts[i].e.dx = 0;
+                m->ghosts[i].e.dy = -1;
                 m->ghosts[i].vulnerable = 0;
                 m->ghosts[i].eaten = 1;
                 m->ghosts[i].in_house = 1;
-                m->ghosts[i].release_timer = 15;
+                m->ghosts[i].release_timer = 40 + (i * 20);
                 
                 /* Usa Dijkstra para calcular o caminho mais rápido de volta pra casa */
                 int ghost_home = model_coord_to_vertex(m->ghosts[i].e.start_x, m->ghosts[i].e.start_y);

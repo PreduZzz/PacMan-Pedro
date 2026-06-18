@@ -73,6 +73,8 @@
 
 #define CLR_TITLE       "\033[38;5;226;1m"
 #define CLR_TITLE_ALT   "\033[38;5;208;1m"
+#define CLR_HOGWARTS      "\x1b[38;5;220m"
+#define CLR_HOGWARTS_GLOW "\x1b[38;5;228m"
 #define CLR_SUBTITLE    "\033[38;5;229m"
 #define CLR_SCORE       "\033[38;5;231;1m"
 #define CLR_GREEN       "\033[38;5;118;1m"

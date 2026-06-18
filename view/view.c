@@ -1,59 +1,29 @@
 #include "pacman.h"
+#include <mmsystem.h>
 
 #ifdef _WIN32
-static HANDLE music_thread = NULL;
-static volatile LONG music_running = 0;
 
-static DWORD WINAPI hogwarts_music_thread(LPVOID param) {
-   static const int notes[][2] = {
-    {392,450}, {523,520}, {587,420}, {659,700},
-    {587,420}, {523,520}, {440,650}, {0,250},
-
-    {392,450}, {494,520}, {523,420}, {587,700},
-    {523,420}, {494,520}, {392,750}, {0,350},
-
-    {330,500}, {392,500}, {440,500}, {523,850},
-    {494,450}, {440,450}, {392,750}, {0,300},
-
-    {392,450}, {523,520}, {659,520}, {784,850},
-    {659,450}, {587,450}, {523,900}, {0,700}
-};
-    const int note_count = sizeof(notes) / sizeof(notes[0]);
-
-    while (InterlockedCompareExchange(&music_running, 1, 1) == 1) {
-        for (int i = 0; i < note_count; ++i) {
-            if (InterlockedCompareExchange(&music_running, 1, 1) != 1) break;
-            if (notes[i][0] <= 0) {
-                Sleep(notes[i][1]);
-            } else {
-                Beep(notes[i][0], notes[i][1]);
-            }
-            Sleep(35);
-        }
-        Sleep(900);
-    }
-    return 0;
-}
+#include <mmsystem.h>
 
 void play_hogwarts_music(void) {
-    if (music_thread) return;
-    InterlockedExchange(&music_running, 1);
-    music_thread = CreateThread(NULL, 0, hogwarts_music_thread, NULL, 0, NULL);
-    if (!music_thread) {
-        InterlockedExchange(&music_running, 0);
-    }
+    PlaySound(
+        TEXT("serpents_waltz.wav"),
+        NULL,
+        SND_FILENAME | SND_ASYNC | SND_LOOP | SND_NODEFAULT
+    );
 }
 
+
+
 void stop_hogwarts_music(void) {
-    if (!music_thread) return;
-    InterlockedExchange(&music_running, 0);
-    WaitForSingleObject(music_thread, 2000);
-    CloseHandle(music_thread);
-    music_thread = NULL;
+    PlaySound(NULL, NULL, 0);
 }
+
 #else
+
 void play_hogwarts_music(void){}
 void stop_hogwarts_music(void){}
+
 #endif
 /*
  * ============================================================
@@ -962,12 +932,12 @@ void view_draw_menu(GameModel *m) {
     int cy = by + 2;
     int logo_x = bx + 5;
     if (!drawn) {
-        print_abs(logo_x, cy,   CLR_TITLE,     "██╗  ██╗ ██████╗  ██████╗ ██╗    ██╗ █████╗ ██████╗ ████████╗███████╗");
-        print_abs(logo_x, cy+1, CLR_TITLE,     "██║  ██║██╔═══██╗██╔════╝ ██║    ██║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝");
-        print_abs(logo_x, cy+2, CLR_TITLE_ALT, "███████║██║   ██║██║  ███╗██║ █╗ ██║███████║██████╔╝   ██║   ███████╗");
-        print_abs(logo_x, cy+3, CLR_TITLE_ALT, "██╔══██║██║   ██║██║   ██║██║███╗██║██╔══██║██╔══██╗   ██║   ╚════██║");
-        print_abs(logo_x, cy+4, CLR_TITLE,     "██║  ██║╚██████╔╝╚██████╔╝╚███╔███╔╝██║  ██║██║  ██║   ██║   ███████║");
-        print_abs(logo_x, cy+5, CLR_TITLE,     "╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝");
+        print_abs(logo_x, cy,   CLR_HOGWARTS,      "██╗  ██╗ ██████╗  ██████╗ ██╗    ██╗ █████╗ ██████╗ ████████╗███████╗");
+        print_abs(logo_x, cy+1, CLR_HOGWARTS_GLOW, "██║  ██║██╔═══██╗██╔════╝ ██║    ██║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝");
+        print_abs(logo_x, cy+2, CLR_HOGWARTS,      "███████║██║   ██║██║  ███╗██║ █╗ ██║███████║██████╔╝   ██║   ███████╗");
+        print_abs(logo_x, cy+3, CLR_HOGWARTS_GLOW, "██╔══██║██║   ██║██║   ██║██║███╗██║██╔══██║██╔══██╗   ██║   ╚════██║");
+        print_abs(logo_x, cy+4, CLR_HOGWARTS,      "██║  ██║╚██████╔╝╚██████╔╝╚███╔███╔╝██║  ██║██║  ██║   ██║   ███████║");
+        print_abs(logo_x, cy+5, CLR_HOGWARTS_GLOW, "╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝");
     }
 
     /* Sub título + tema */
@@ -987,7 +957,7 @@ print_abs(bx + (bw - slen3) / 2, cy + 2, CLR_SUBTITLE, sub3);
 
 const char *sub4 = "⚜ BST  ⚜ AVL  ⚜ Grafos  ⚜ Sorts ⚜";
 int slen4 = (int)strlen(sub4) - 6;
-print_abs(bx + (bw - slen4) / 2, cy + 3, CLR_TITLE_ALT, sub4);
+print_abs(bx + (bw - slen4) / 2 + 2, cy + 3, CLR_TITLE_ALT, sub4);
     }
 
     /* Atract animado (Harry + dementadores) */
@@ -1042,10 +1012,10 @@ print_abs(bx + (bw - slen4) / 2, cy + 3, CLR_TITLE_ALT, sub4);
 };
 
 const char *descs[MAP_COUNT] = {
-    "Equilibrado, fiel ao layout original.",
-    "Mais espaco aberto pra correr e reagir.",
-    "Mais paredes, curvas e risco. Avancado.",
-    "Corredores longos do castelo de Hogwarts.",
+    "Equilibrado, fiel ao original.",
+    "Mais espaco aberto pra correr.",
+    "Mais paredes, curvas e risco.",
+    "Corredores longos do castelo.",
     "A Camara Secreta esta aberta."
 };
     /* Mini-previews ASCII (4 linhas x ~17 chars) */

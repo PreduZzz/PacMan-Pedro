@@ -16,7 +16,7 @@
 
 CC      = gcc
 CFLAGS  = -Wall -Wextra -I.
-LDFLAGS = -lm
+LDFLAGS = -lm -lwinmm
 TARGET  = pacman
 SRC = controller/controller.c model/model.c view/view.c
 OBJ     = $(SRC:.c=.o)
