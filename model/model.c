@@ -990,6 +990,9 @@ for (int y = 13; y <= 15; y++) {
     /* Pac-Man */
     m->pacman = (Entity){14, 23, 0, 0, 14, 23};
 
+    m->light_x = m->pacman.x;
+    m->light_y = m->pacman.y;
+
     /* Fantasmas */
     m->ghosts[0].e = (Entity){14, 11, -1, 0, 14, 11};
     m->ghosts[0].symbol = 'B'; m->ghosts[0].vulnerable = 0;
@@ -1039,6 +1042,8 @@ static void wrap_entity(Entity *e) {
 void model_reset_positions(GameModel *m) {
     m->pacman.x = m->pacman.start_x;
     m->pacman.y = m->pacman.start_y;
+    m->light_x = m->pacman.x;
+    m->light_y = m->pacman.y;
     m->current_dx = m->current_dy = 0;
     m->desired_dx = m->desired_dy = 0;
 
@@ -1072,6 +1077,10 @@ void model_move_pacman(GameModel *m) {
         m->pacman.y += m->current_dy;
         wrap_entity(&m->pacman);
     }
+
+    m->light_x = m->pacman.x;
+    m->light_y = m->pacman.y;
+
 
     if (m->grid[m->pacman.y][m->pacman.x] == TILE_PELLET) {
         m->grid[m->pacman.y][m->pacman.x] = TILE_EMPTY;

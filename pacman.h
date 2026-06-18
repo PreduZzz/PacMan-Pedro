@@ -153,6 +153,8 @@ typedef struct {
     int pellets_left, total_pellets;
 
     Entity pacman;
+    int light_x;
+    int light_y;
     Ghost  ghosts[GHOSTS];
 
     GameState state;

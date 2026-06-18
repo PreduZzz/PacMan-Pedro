@@ -194,18 +194,60 @@ static int is_wall_or_door(GameModel *m, int x, int y) {
     return (t == TILE_WALL || t == TILE_DOOR);
 }
 
+/* ======================== ILUMINACAO ======================== */
+
+static int candle_light_level(GameModel *m, int x, int y) {
+    int light = 2; /* mapa normal */
+
+    int dx = abs(x - m->pacman.x);
+    int dy = abs(y - m->pacman.y);
+    int d = dx + dy;
+
+    if (d <= 2)
+        light = 4;
+    else if (d <= 5)
+        light = 3;
+
+    return light;
+}
+
+
+/* ======================== PAREDES ======================== */
+
 static const char *wall_glyph(GameModel *m, int x, int y) {
     int u = is_wall_or_door(m, x, y - 1);
     int d = is_wall_or_door(m, x, y + 1);
     int l = is_wall_or_door(m, x - 1, y);
     int r = is_wall_or_door(m, x + 1, y);
 
-    /* Núcleo: cercado em todos os lados → bloco sólido */
-    if (u && d && l && r) return "██";
+    /* Núcleo */
+if (u && d && l && r) {
+    int tex = (x * 7 + y * 13) % 4;
 
-    /* Lados (T-junções) → bloco sólido pra vedar */
-    if (u && d && (l || r)) return "██";
-    if (l && r && (u || d)) return "██";
+    if (tex == 0) return "▓▓";
+    if (tex == 1) return "▒▓";
+    if (tex == 2) return "▓▒";
+    return "██";
+}
+
+/* T-junções */
+if (u && d && (l || r)) {
+    int tex = (x * 7 + y * 13) % 4;
+
+    if (tex == 0) return "▓▓";
+    if (tex == 1) return "▒▓";
+    if (tex == 2) return "▓▒";
+    return "██";
+}
+
+if (l && r && (u || d)) {
+    int tex = (x * 7 + y * 13) % 4;
+
+    if (tex == 0) return "▓▓";
+    if (tex == 1) return "▒▓";
+    if (tex == 2) return "▓▒";
+    return "██";
+}
 
     /* Cantos arredondados (estilo arcade) */
     if (d && r && !u && !l) return "╭─";
@@ -222,13 +264,19 @@ static const char *wall_glyph(GameModel *m, int x, int y) {
     if (r)         return " ─";
     if (u || d)    return "││";
 
-    return "██";
+   int tex = (x * 7 + y * 13) % 4;
+
+if (tex == 0) return "▓▓";
+if (tex == 1) return "▒▓";
+if (tex == 2) return "▓▒";
+return "██";
 }
 
 /* ======================== CÉLULAS DO MAPA ======================== */
 
 void view_draw_cell(GameModel *m, int x, int y) {
     int tile = m->grid[y][x];
+
     if (m->debug_mode && tile != TILE_WALL && tile != TILE_DOOR) {
         int v = model_coord_to_vertex(x, y);
         if (m->bfs_dist[v] >= 0 && m->bfs_dist[v] < 100) {
@@ -237,35 +285,74 @@ void view_draw_cell(GameModel *m, int x, int y) {
             return;
         }
     }
+
     int sx = OFFSET_X + x * CELL_W;
     int sy = OFFSET_Y + y;
     move_cursor(sx, sy);
 
+    int light = candle_light_level(m, x, y);
+
     switch (tile) {
         case TILE_WALL: {
-            const char *g = wall_glyph(m, x, y);
-            printf("%s%s%s", CLR_WALL, g, CLR_RESET);
-            break;
-        }
-        case TILE_PELLET:
-    printf("%s ·%s", CLR_PELLET, CLR_RESET);
+    const char *g = wall_glyph(m, x, y);
+    const char *wall_color;
+
+    if (light >= 4) {
+        wall_color = "\033[38;5;252m";
+        g = "██";
+    } else if (light == 3) {
+        wall_color = "\033[38;5;248m";
+        g = "▓▓";
+    } else {
+        wall_color = "\033[38;5;240m";
+    }
+
+    printf("%s%s%s", wall_color, g, CLR_RESET);
     break;
+}
+
+        case TILE_PELLET:
+    if (light >= 3)
+        printf("%s •%s", CLR_PELLET, CLR_RESET);
+    else
+        printf("\033[38;5;244m •%s", CLR_RESET);
+    break;
+
         case TILE_POWER: {
-            /* Power pellet "respira" em 4 fases visuais */
+            if (light <= 0) {
+                printf("[38;5;232m  %s", CLR_RESET);
+                break;
+            }
+
             int ph = (m->frame_count / 3) % 8;
-            const char *glyph; const char *color;
+            const char *glyph;
+            const char *color;
+
             if      (ph < 2) { glyph = " ·"; color = CLR_POWER; }
             else if (ph < 4) { glyph = " ✦"; color = CLR_POWER; }
             else if (ph < 6) { glyph = " ⚡"; color = CLR_ORANGE; }
             else             { glyph = " ✦"; color = CLR_POWER; }
+
             printf("%s%s%s", color, glyph, CLR_RESET);
             break;
         }
+
         case TILE_DOOR:
-            printf("%s══%s", CLR_DOOR, CLR_RESET);
+            if (light <= 0)
+                printf("[38;5;232m  %s", CLR_RESET);
+            else if (light == 1)
+                printf("[38;5;236m══%s", CLR_RESET);
+            else
+                printf("%s══%s", CLR_DOOR, CLR_RESET);
             break;
+
         default:
-            printf("  ");
+            if (light <= 0)
+                printf("[48;5;232m  %s", CLR_RESET);
+            else if (light == 1)
+                printf("[48;5;233m  %s", CLR_RESET);
+            else
+                printf("  ");
             break;
     }
 }
@@ -664,6 +751,10 @@ void view_draw_game(GameModel *m) {
     reset_cursor();
     view_draw_map(m);
     view_draw_hud(m);
+
+    if (m->ready_timer > 0)
+        view_draw_ready();
+
     view_draw_entities(m);
     view_flush();
 }
@@ -1078,20 +1169,22 @@ const char *descs[MAP_COUNT] = {
 void view_draw_gameover(GameModel *m) {
     view_clear();
     
-    int W = 50, H = 13;
-    int cx = OFFSET_X + (MAP_W * CELL_W - W) / 2;
-    int cy = OFFSET_Y + (MAP_H - H) / 2;
+    int W = 72, H = 16;
+    int cx = 2;
+    int cy = 2;
 
     draw_box_shadow(cx, cy, W, H);
 
-    int tx = cx + 6;
+    int tx = cx + 3;
     int ty = cy + 2;
-    print_abs(tx + 0, ty,   CLR_GAMEOVER, " ██████   █████  ███    ███ ███████");
-    print_abs(tx + 0, ty+1, CLR_GAMEOVER, "██       ██   ██ ████  ████ ██     ");
-    print_abs(tx + 0, ty+2, CLR_GAMEOVER, "██   ███ ███████ ██ ████ ██ █████  ");
-    print_abs(tx + 0, ty+3, CLR_GAMEOVER, "██    ██ ██   ██ ██  ██  ██ ██     ");
-    print_abs(tx + 0, ty+4, CLR_GAMEOVER, " ██████  ██   ██ ██      ██ ███████");
-    print_abs(tx + 12, ty+5, CLR_GAMEOVER, "OVER");
+print_abs(cx + 8, cy + 3, CLR_GREEN, "███╗   ███╗ ██████╗ ██████╗ ██████╗ ███████╗██╗   ██╗");
+print_abs(cx + 8, cy + 4, CLR_GREEN, "████╗ ████║██╔═══██╗██╔══██╗██╔══██╗██╔════╝██║   ██║");
+print_abs(cx + 8, cy + 5, CLR_GREEN, "██╔████╔██║██║   ██║██████╔╝██████╔╝█████╗  ██║   ██║");
+print_abs(cx + 8, cy + 6, CLR_GREEN, "██║╚██╔╝██║██║   ██║██╔══██╗██╔══██╗██╔══╝  ██║   ██║");
+print_abs(cx + 8, cy + 7, CLR_GREEN, "██║ ╚═╝ ██║╚██████╔╝██║  ██║██║  ██║███████╗╚██████╔╝");
+print_abs(cx + 8, cy + 8, CLR_GREEN, "╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ");
+                                        print_abs(cx + 18, cy + 9, CLR_SUBTITLE,
+                                            "O Lorde das Trevas venceu...");
 
     move_cursor(cx + 4, cy + H - 4);
     printf("%sSCORE FINAL%s    %s%6d%s", CLR_DIM, CLR_RESET, CLR_SCORE, m->score, CLR_RESET);

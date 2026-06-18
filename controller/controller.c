@@ -564,7 +564,8 @@ void controller_run(GameModel *m) {
                 view_clear();
                 view_draw_map(m);
                 view_draw_hud(m);
-                view_draw_ready();
+                    m->ready_timer = 20;
+                    view_draw_ready();
                 view_draw_entities(m);
                 view_flush();
             } else if (m->state == STATE_SCORES) {
@@ -614,8 +615,12 @@ void controller_run(GameModel *m) {
                     if (ch == 'p' || ch == 'P') m->state = STATE_PAUSED;
                 }
             }
-            controller_update(m);
-            sleep_ms(FRAME_MS);
+    
+    
+
+        controller_update(m);
+        view_draw_game(m);
+        sleep_ms(FRAME_MS);
             break;
 
         /* ── PAUSADO ── */
@@ -647,9 +652,10 @@ void controller_run(GameModel *m) {
             model_reset_positions(m);
             view_draw_map(m);
             view_draw_hud(m);
-            view_draw_ready();
             view_draw_entities(m);
             view_flush();
+
+            m->ready_timer = 20;
             m->state = STATE_PLAYING;
             break;
 
@@ -672,7 +678,8 @@ void controller_run(GameModel *m) {
                 view_clear();
                 view_draw_map(m);
                 view_draw_hud(m);
-                view_draw_ready();
+                    m->ready_timer = 20;
+                    view_draw_ready();
                 view_draw_entities(m);
                 view_flush();
                 m->state = STATE_PLAYING;
